@@ -1,62 +1,67 @@
-const { db } = require('../config/firebase');
+const mongoose = require('mongoose');
 
-const habitLogsCollection = db.collection('habitLogs');
+const habitLogSchema = new mongoose.Schema({
+    habitId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Habit',
+        required: true
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    date: {
+        type: String, // YYYY-MM-DD
+        required: true
+    },
+    status: {
+        type: String, // 'completed' or 'incomplete'
+        required: true
+    },
+    loggedAt: {
+        type: Date,
+        default: Date.now
+    }
+});
 
-// Create or update a log for a specific date
+const HabitLog = mongoose.model('HabitLog', habitLogSchema);
+
+// Helper Functions
 const logHabitCompletion = async (habitId, userId, dateString, status) => {
-    // Check if log already exists for this date
-    const snapshot = await habitLogsCollection
-        .where('habitId', '==', habitId)
-        .get();
-        
-    let existingLogId = null;
-    snapshot.forEach(doc => {
-        if (doc.data().date === dateString) {
-            existingLogId = doc.id;
-        }
-    });
+    // Check if log already exists
+    let existingLog = await HabitLog.findOne({ habitId, date: dateString });
 
-    const logData = {
-        habitId,
-        userId,
-        date: dateString,
-        status, // 'completed' or 'incomplete'
-        loggedAt: new Date().toISOString()
-    };
-
-    if (existingLogId) {
-        await habitLogsCollection.doc(existingLogId).update({ status, loggedAt: logData.loggedAt });
-        return { id: existingLogId, ...logData };
+    if (existingLog) {
+        existingLog.status = status;
+        existingLog.loggedAt = Date.now();
+        await existingLog.save();
+        return { ...existingLog.toObject(), id: existingLog._id.toString() };
     } else {
-        const docRef = await habitLogsCollection.add(logData);
-        return { id: docRef.id, ...logData };
+        const newLog = new HabitLog({
+            habitId,
+            userId,
+            date: dateString,
+            status
+        });
+        await newLog.save();
+        return { ...newLog.toObject(), id: newLog._id.toString() };
     }
 };
 
 const getHabitLogs = async (habitId) => {
-    const snapshot = await habitLogsCollection.where('habitId', '==', habitId).get();
-    let logs = [];
-    snapshot.forEach(doc => {
-        logs.push({ id: doc.id, ...doc.data() });
-    });
-    // Sort by date ascending
-    logs.sort((a, b) => new Date(a.date) - new Date(b.date));
-    return logs;
+    const logs = await HabitLog.find({ habitId }).sort({ date: 1 }).lean();
+    return logs.map(l => ({ ...l, id: l._id.toString() }));
 };
 
 const getLogsByUserAndDate = async (userId, dateString) => {
-    const snapshot = await habitLogsCollection.where('userId', '==', userId).get();
-    let logs = [];
-    snapshot.forEach(doc => {
-        if (doc.data().date === dateString) {
-            logs.push({ id: doc.id, ...doc.data() });
-        }
-    });
-    return logs;
-}
+    const logs = await HabitLog.find({ userId, date: dateString }).lean();
+    return logs.map(l => ({ ...l, id: l._id.toString() }));
+};
 
 module.exports = {
     logHabitCompletion,
     getHabitLogs,
-    getLogsByUserAndDate
+    getLogsByUserAndDate,
+    HabitLog
 };

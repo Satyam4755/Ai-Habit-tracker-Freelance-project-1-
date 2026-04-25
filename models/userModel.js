@@ -1,31 +1,45 @@
-const { db } = require('../config/firebase');
+const mongoose = require('mongoose');
 
-const usersCollection = db.collection('users');
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    password: {
+        type: String,
+        required: true,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    }
+});
+
+const User = mongoose.model('User', userSchema);
 
 const createUser = async (userId, data) => {
-    await usersCollection.doc(userId).set(data);
-    return { id: userId, ...data };
-};
-
-const getUserByEmail = async (email) => {
-    const snapshot = await usersCollection.where('email', '==', email).get();
-    if (snapshot.empty) return null;
-    let user = null;
-    // Mock vs Real Firebase difference handling:
-    snapshot.forEach(doc => {
-        user = { id: doc.id, ...doc.data() };
-    });
+    // userId arg ignored, Mongoose handles ids. Included to reduce controller changes.
+    const user = new User(data);
+    await user.save();
     return user;
 };
 
+const getUserByEmail = async (email) => {
+    return await User.findOne({ email });
+};
+
 const getUserById = async (userId) => {
-    const doc = await usersCollection.doc(userId).get();
-    if (!doc.exists) return null;
-    return { id: doc.id, ...doc.data() };
+    return await User.findById(userId);
 };
 
 module.exports = {
     createUser,
     getUserByEmail,
-    getUserById
+    getUserById,
+    User
 };

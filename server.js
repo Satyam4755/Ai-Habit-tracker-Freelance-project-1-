@@ -1,7 +1,8 @@
 const express = require('express');
 const path = require('path');
-const cookieParser = require('cookie-parser');
+const session = require('express-session');
 require('dotenv').config();
+const connectDB = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 const habitRoutes = require('./routes/habitRoutes');
@@ -15,11 +16,26 @@ const PORT = process.env.PORT || 3000;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Connect Database
+connectDB();
+
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(cookieParser());
+
+app.use(session({
+    secret: process.env.JWT_SECRET || 'atlas_super_secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 2, // 2 days
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+    }
+}));
 
 // Base Route
 app.get('/', (req, res) => {

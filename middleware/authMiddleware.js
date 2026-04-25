@@ -1,28 +1,23 @@
-const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
-
 const requireAuth = async (req, res, next) => {
-    const token = req.cookies.token;
-    
-    if (!token) {
+    if (!req.session || !req.session.userId) {
         return res.redirect('/auth/login');
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await userModel.getUserById(decoded.id);
+        const user = await userModel.getUserById(req.session.userId);
         
         if (!user) {
-            res.clearCookie('token');
+            req.session.destroy();
             return res.redirect('/auth/login');
         }
         
-        req.user = user;
+        req.user = { id: user._id.toString(), ...user.toObject() };
         next();
     } catch (error) {
-        res.clearCookie('token');
+        console.error("Auth Middleware Error:", error);
+        req.session.destroy();
         return res.redirect('/auth/login');
     }
 };

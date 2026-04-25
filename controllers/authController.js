@@ -1,11 +1,8 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
-
 const getLogin = (req, res) => {
-    if (req.cookies.token) {
+    if (req.session && req.session.userId) {
         return res.redirect('/dashboard');
     }
     res.render('login', { error: null });
@@ -24,12 +21,13 @@ const postLogin = async (req, res) => {
             return res.render('login', { error: 'Invalid email or password' });
         }
 
-        // Create JWT
-        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+        // Create Session Native
+        req.session.userId = user._id;
         
-        // Set Cookie
-        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-        res.redirect('/dashboard');
+        req.session.save((err) => {
+            if (err) console.error("Session save error:", err);
+            res.redirect('/dashboard');
+        });
     } catch (error) {
         console.error(error);
         res.render('login', { error: 'Server error during login.' });
@@ -37,7 +35,7 @@ const postLogin = async (req, res) => {
 };
 
 const getSignup = (req, res) => {
-    if (req.cookies.token) {
+    if (req.session && req.session.userId) {
         return res.redirect('/dashboard');
     }
     res.render('signup', { error: null });
@@ -54,16 +52,19 @@ const postSignup = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const userId = Date.now().toString(); // simple ID gen for mock/demo, usually Firebase handles this
 
-        const newUser = await userModel.createUser(userId, {
+        const newUser = await userModel.createUser(null, {
             name,
             email,
             password: hashedPassword,
             createdAt: new Date().toISOString()
         });
 
-        const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-        res.redirect('/dashboard');
+        req.session.userId = newUser._id;
+        
+        req.session.save((err) => {
+            if (err) console.error("Session save error:", err);
+            res.redirect('/dashboard');
+        });
     } catch (error) {
         console.error(error);
         res.render('signup', { error: 'Server error during signup.' });
@@ -71,8 +72,11 @@ const postSignup = async (req, res) => {
 };
 
 const logout = (req, res) => {
-    res.clearCookie('token');
-    res.redirect('/auth/login');
+    req.session.destroy(err => {
+        if (err) console.error("Error destroying session:", err);
+        res.clearCookie('connect.sid'); // Wipe default express session cookie
+        res.redirect('/auth/login');
+    });
 };
 
 module.exports = {
