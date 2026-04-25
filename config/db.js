@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://satyam:satyam4755@satyamdb.mebk6.mongodb.net/HabitTrackerDB?retryWrites=true&w=majority&appName=SatyamDB";
+const MONGO_URI = process.env.MONGO_URI;
 
 const connectDB = async () => {
     try {
@@ -9,7 +9,7 @@ const connectDB = async () => {
         console.log('✅ MongoDB Atlas properly connected.');
     } catch (error) {
         console.error('❌ MongoDB connection error:', error.message);
-        process.exit(1); 
+        process.exit(1);
     }
 };
 
