@@ -1,0 +1,31 @@
+    </main>
+</div> <!-- End Main Content Wrapper -->
+</div> <!-- End Flex h-screen -->
+
+<!-- Scripts -->
+<script>
+    // Dark mode toggle logic
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlEl = document.documentElement;
+    
+    // Check local storage
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        htmlEl.classList.add('dark');
+    } else {
+        htmlEl.classList.remove('dark');
+    }
+
+    if(themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            if(htmlEl.classList.contains('dark')) {
+                localStorage.theme = 'dark';
+            } else {
+                localStorage.theme = 'light';
+            }
+        });
+    }
+</script>
+<script src="/js/main.js"></script>
+</body>
+</html>

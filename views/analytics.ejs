@@ -1,0 +1,167 @@
+<%- include('components/header') %>
+<%- include('components/sidebar') %>
+
+<div class="flex-1 p-6 lg:p-10 relative overflow-y-auto">
+    <!-- Top Bar -->
+    <header class="mb-10">
+        <h2 class="text-3xl font-extrabold tracking-tight">AI Analytics</h2>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Deep insights into your behavioral patterns.</p>
+    </header>
+
+    <!-- Top Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 shadow-lg text-white">
+            <p class="text-white/80 font-medium mb-1">Lifetime Completion %</p>
+            <h3 class="text-4xl font-bold"><%= stats.completionPercentage %>%</h3>
+        </div>
+        <div class="bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl p-6 shadow-lg text-white">
+            <p class="text-white/80 font-medium mb-1">Longest Streak Recorded</p>
+            <h3 class="text-4xl font-bold flex items-center gap-2">
+                <i class="bi bi-fire text-2xl drop-shadow-md"></i> <%= stats.longestStreak %> Days
+            </h3>
+        </div>
+        <div class="bg-white dark:bg-darkcard rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+            <p class="text-gray-500 dark:text-gray-400 font-medium mb-1">Total Tracked Habits</p>
+            <h3 class="text-4xl font-bold text-gray-900 dark:text-white"><%= stats.totalHabits %></h3>
+        </div>
+    </div>
+
+    <!-- AI Insights Card -->
+    <div class="bg-slate-900 rounded-2xl p-8 mb-10 shadow-2xl relative overflow-hidden group">
+        <!-- background blur -->
+        <div class="absolute -right-20 -top-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl group-hover:bg-primary/30 transition-colors"></div>
+        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-3 relative z-10">
+            <div class="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary">
+                <i class="bi bi-robot text-xl"></i>
+            </div>
+            Smart Insights
+        </h3>
+        <p class="text-lg text-indigo-100 font-medium leading-relaxed relative z-10 max-w-3xl">
+            "<%= aiFeedback %>"
+        </p>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <!-- Line Chart: Monthly Progress -->
+        <div class="bg-white dark:bg-darkcard rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h3 class="text-lg font-bold mb-6">Historical Progress</h3>
+            <div class="h-64 relative">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Doughnut: Completion Ratio -->
+        <div class="bg-white dark:bg-darkcard rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h3 class="text-lg font-bold mb-6">Completion Ratio</h3>
+            <div class="h-64 relative flex items-center justify-center">
+                <canvas id="ratioChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Bar Chart: Day Performance -->
+        <div class="lg:col-span-2 bg-white dark:bg-darkcard rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h3 class="text-lg font-bold mb-6">Success by Day of Week</h3>
+            <div class="h-80 relative">
+                <canvas id="weeklyBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Pass data to JS -->
+<script id="chartData" type="application/json">
+    <%- chartData %>
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const rawData = document.getElementById('chartData').textContent;
+    const data = JSON.parse(rawData);
+    
+    // 1. Monthly Line Chart
+    const ctxMonthly = document.getElementById('monthlyChart').getContext('2d');
+    let gradient = ctxMonthly.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.5)'); // primary
+    gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+    new Chart(ctxMonthly, {
+        type: 'line',
+        data: {
+            labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6', 'Current'],
+            datasets: [{
+                label: 'Score',
+                data: data.monthlyProgress,
+                borderColor: '#6366f1',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#ec4899',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#ec4899',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, grid: { color: 'rgba(156, 163, 175, 0.1)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. Completion Ratio Doughnut
+    const ctxRatio = document.getElementById('ratioChart').getContext('2d');
+    new Chart(ctxRatio, {
+        type: 'doughnut',
+        data: {
+            labels: ['Success', 'Missed'],
+            datasets: [{
+                data: [data.completionRatio.completed, data.completionRatio.missed],
+                backgroundColor: ['#22c55e', '#ef4444'], // Green and Red
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 3. Weekly Bar Chart
+    const ctxWeekly = document.getElementById('weeklyBarChart').getContext('2d');
+    new Chart(ctxWeekly, {
+        type: 'bar',
+        data: {
+            labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            datasets: [{
+                label: 'Successful Logs',
+                data: data.weeklyBar,
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(156, 163, 175, 0.1)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+});
+</script>
+
+<%- include('components/footer') %>

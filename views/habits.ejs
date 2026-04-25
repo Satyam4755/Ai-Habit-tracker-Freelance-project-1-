@@ -1,0 +1,172 @@
+<%- include('components/header') %>
+<%- include('components/sidebar') %>
+
+<div class="flex-1 p-6 lg:p-10 relative">
+    <header class="flex justify-between items-center mb-10">
+        <div>
+            <h2 class="text-3xl font-extrabold tracking-tight">My Habits</h2>
+            <p class="text-gray-500 dark:text-gray-400 mt-1">Manage everything you're trying to build.</p>
+        </div>
+        <button onclick="document.getElementById('addHabitModal').classList.remove('hidden')" class="bg-gradient-to-r from-primary to-secondary text-white px-6 py-2.5 rounded-full font-medium shadow-lg hover:shadow-primary/50 transform hover:-translate-y-0.5 transition-all">
+            <i class="bi bi-plus-lg mr-1"></i> New Habit
+        </button>
+    </header>
+
+    <% if (locals.error) { %>
+        <div class="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
+            <%= error %>
+        </div>
+    <% } %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% if(habits.length === 0) { %>
+            <div class="col-span-full text-center py-20 bg-white dark:bg-darkcard rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
+                <div class="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl text-gray-400">
+                    <i class="bi bi-rocket-takeoff"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">No Habits Yet</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Start your journey by adding your first habit.</p>
+                <button onclick="document.getElementById('addHabitModal').classList.remove('hidden')" class="text-primary font-semibold hover:underline">Create One Now</button>
+            </div>
+        <% } else { %>
+            <% habits.forEach(habit => { %>
+                <div class="bg-white dark:bg-darkcard rounded-2xl p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 relative group overflow-hidden hover:-translate-y-1 transition-all duration-300">
+                    <!-- Category Badge -->
+                    <span class="absolute top-4 right-4 text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded-md dark:bg-primary/20">
+                        <%= habit.category %>
+                    </span>
+
+                    <h3 class="text-xl font-bold mb-1 w-3/4 truncate"><%= habit.name %></h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 capitalize">Frequency: <%= habit.frequency %></p>
+                    
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="flex items-center text-orange-500 font-bold bg-orange-50 dark:bg-orange-500/10 px-3 py-1.5 rounded-lg">
+                            <i class="bi bi-fire mr-1.5"></i> <%= habit.streak || 0 %>
+                        </div>
+                        <% if (habit.reminderTime) { %>
+                            <div class="flex items-center text-blue-500 font-bold bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg">
+                                <i class="bi bi-bell-fill mr-1.5"></i> <%= habit.reminderTime %>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <div class="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                        <button onclick="openEditModal('<%= habit.id %>', '<%= habit.name.replace(/'/g, "\\'") %>', '<%= habit.category %>', '<%= habit.frequency %>', '<%= habit.reminderTime || '' %>')" class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-500 rounded-full hover:bg-blue-500 hover:text-white transition-colors">
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                        <form action="/habits/delete/<%= habit.id %>" method="POST">
+                            <button type="submit" onclick="return confirm('Are you sure you want to delete this habit?');" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-colors">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <% }) %>
+        <% } %>
+    </div>
+</div>
+
+<!-- Add Habit Modal -->
+<div id="addHabitModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center">
+    <div class="bg-white dark:bg-darkcard w-full max-w-md p-8 rounded-3xl shadow-2xl relative border border-gray-200 dark:border-gray-700 transform scale-95 transition-transform">
+        <button onclick="document.getElementById('addHabitModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <h3 class="text-2xl font-bold mb-6">Create New Habit</h3>
+        
+        <form action="/habits/add" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Habit Name</label>
+                <input type="text" name="name" required placeholder="e.g. Read 10 pages" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                    <select name="category" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+                        <option value="Health">Health</option>
+                        <option value="Productivity">Productivity</option>
+                        <option value="Learning">Learning</option>
+                        <option value="Fitness">Fitness</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Frequency</label>
+                    <select name="frequency" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reminder Time (Optional)</label>
+                <input type="time" name="reminderTime" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+            </div>
+
+            <button type="submit" class="w-full py-3 mt-6 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold shadow-lg hover:shadow-primary/50 transition-all">
+                Save Habit
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Habit Modal -->
+<div id="editHabitModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center">
+    <div class="bg-white dark:bg-darkcard w-full max-w-md p-8 rounded-3xl shadow-2xl relative border border-gray-200 dark:border-gray-700 transform scale-95 transition-transform">
+        <button onclick="document.getElementById('editHabitModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <h3 class="text-2xl font-bold mb-6">Edit Habit</h3>
+        
+        <form id="editHabitForm" action="/habits/edit" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Habit Name</label>
+                <input type="text" id="editName" name="name" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                    <select id="editCategory" name="category" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+                        <option value="Health">Health</option>
+                        <option value="Productivity">Productivity</option>
+                        <option value="Learning">Learning</option>
+                        <option value="Fitness">Fitness</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Frequency</label>
+                    <select id="editFrequency" name="frequency" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reminder Time (Optional)</label>
+                <input type="time" id="editReminder" name="reminderTime" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white outline-none">
+            </div>
+
+            <button type="submit" class="w-full py-3 mt-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:shadow-indigo-500/50 transition-all">
+                Update Habit
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, name, category, frequency, reminder) {
+    document.getElementById('editHabitForm').action = '/habits/edit/' + id;
+    document.getElementById('editName').value = name;
+    document.getElementById('editCategory').value = category;
+    document.getElementById('editFrequency').value = frequency;
+    document.getElementById('editReminder').value = reminder || '';
+    document.getElementById('editHabitModal').classList.remove('hidden');
+}
+</script>
+
+<%- include('components/footer') %>
